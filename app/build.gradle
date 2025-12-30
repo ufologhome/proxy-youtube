@@ -3,6 +3,7 @@ plugins {
 }
 
 android {
+    namespace "com.example.youtubeproxy"
     compileSdk 33
 
     defaultConfig {
