@@ -25,7 +25,7 @@ public class PlayerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_player);
 
         String videoId = getIntent().getStringExtra("video_id");
-        String url = "https://www.youtube.com/watch?v=" + videoId;
+        String url = "https://www.youtube.com/watch?v=xCLqc-nMc1o" + videoId;
 
         Proxy proxy = new Proxy(
                 Proxy.Type.HTTP,
