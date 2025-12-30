@@ -29,7 +29,7 @@ public class PlayerActivity extends AppCompatActivity {
 
         Proxy proxy = new Proxy(
                 Proxy.Type.HTTP,
-                new InetSocketAddress("192.168.1.100", 8881) // <-- ТВОЙ GO PROXY
+                new InetSocketAddress("127.0.0.1", 8881) // <-- ТВОЙ GO PROXY
         );
 
         OkHttpClient client = new OkHttpClient.Builder()
