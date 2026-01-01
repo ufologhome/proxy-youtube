@@ -1,7 +1,9 @@
 package com.example.youtubeproxy;
 
+import android.content.Intent;
 import android.net.VpnService;
 import android.os.ParcelFileDescriptor;
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.InetSocketAddress;
@@ -13,9 +15,9 @@ public class MyVpnService extends VpnService implements Runnable {
     private ParcelFileDescriptor tun;
 
     @Override
-    public int onStartCommand(Intent i, int f, int id) {
+    public int onStartCommand(Intent intent, int flags, int startId) {
         if (thread == null) {
-            thread = new Thread(this, "VPN");
+            thread = new Thread(this, "VPN-Thread");
             thread.start();
         }
         return START_STICKY;
@@ -24,24 +26,26 @@ public class MyVpnService extends VpnService implements Runnable {
     @Override
     public void run() {
         try {
-            Builder b = new Builder();
-            b.setSession("YT-VPN");
-            b.setMtu(1500);
-            b.addAddress("10.0.0.2", 32);
-            b.addRoute("0.0.0.0", 0);
-            b.addDnsServer("8.8.8.8");
+            Builder builder = new Builder();
+            builder.setSession("YT-VPN");
+            builder.setMtu(1500);
+            builder.addAddress("10.0.0.2", 32);
+            builder.addRoute("0.0.0.0", 0);
+            builder.addDnsServer("8.8.8.8");
 
-            tun = b.establish();
+            tun = builder.establish();
 
-            FileInputStream in = new FileInputStream(tun.getFileDescriptor());
-            FileOutputStream out = new FileOutputStream(tun.getFileDescriptor());
+            FileInputStream tunIn =
+                    new FileInputStream(tun.getFileDescriptor());
+            FileOutputStream tunOut =
+                    new FileOutputStream(tun.getFileDescriptor());
 
-            Socket s = new Socket();
-            protect(s); // КРИТИЧЕСКИ ВАЖНО
-            s.connect(new InetSocketAddress("192.168.0.150", 8881));
+            Socket socket = new Socket();
+            protect(socket); // КРИТИЧЕСКИ ВАЖНО
+            socket.connect(new InetSocketAddress("192.168.0.150", 8881));
 
-            new TunnelThread(in, s.getOutputStream()).start();
-            new TunnelThread(s.getInputStream(), out).start();
+            new TunnelThread(tunIn, socket.getOutputStream()).start();
+            new TunnelThread(socket.getInputStream(), tunOut).start();
 
         } catch (Exception e) {
             e.printStackTrace();
