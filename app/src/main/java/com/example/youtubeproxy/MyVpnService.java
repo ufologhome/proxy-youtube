@@ -1,54 +1,90 @@
 package com.example.youtubeproxy;
 
+import android.app.Service;
 import android.content.Intent;
 import android.net.VpnService;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-public class MyVpnService extends VpnService implements Runnable {
+public class MyVpnService extends VpnService {
 
-    private Thread thread;
-    private ParcelFileDescriptor tun;
+    private static final String TAG = "MyVpnService";
+    private ParcelFileDescriptor vpnInterface = null;
+    private Thread vpnThread = null;
+    private volatile boolean running = false;
+
+    private String GO_HOST = "192.168.0.150"; // ваш ПК с Go
+    private int GO_PORT = 8881;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (thread == null) {
-            thread = new Thread(this, "VPN-Thread");
-            thread.start();
-        }
+        if (vpnThread != null && running) return START_STICKY;
+
+        running = true;
+        vpnThread = new Thread(this::runVpn, "MyVpnThread");
+        vpnThread.start();
         return START_STICKY;
     }
 
-    @Override
-    public void run() {
+    private void runVpn() {
         try {
             Builder builder = new Builder();
-            builder.setSession("YT-VPN");
-            builder.setMtu(1500);
-            builder.addAddress("10.0.0.2", 32);
-            builder.addRoute("0.0.0.0", 0);
-            builder.addDnsServer("8.8.8.8");
+            builder.setSession("YTProxyVPN")
+                    .addAddress("10.0.0.2", 32)
+                    .addRoute("0.0.0.0", 0)
+                    .setMtu(1500);
 
-            tun = builder.establish();
+            vpnInterface = builder.establish();
+            if (vpnInterface == null) return;
 
-            FileInputStream tunIn =
-                    new FileInputStream(tun.getFileDescriptor());
-            FileOutputStream tunOut =
-                    new FileOutputStream(tun.getFileDescriptor());
+            Log.i(TAG, "VPN established");
 
-            Socket socket = new Socket();
-            protect(socket); // КРИТИЧЕСКИ ВАЖНО
-            socket.connect(new InetSocketAddress("192.168.0.150", 8881));
+            FileInputStream in = new FileInputStream(vpnInterface.getFileDescriptor());
+            FileOutputStream out = new FileOutputStream(vpnInterface.getFileDescriptor());
 
-            new TunnelThread(tunIn, socket.getOutputStream()).start();
-            new TunnelThread(socket.getInputStream(), tunOut).start();
+            byte[] buffer = new byte[32767];
+
+            while (running) {
+                int length = in.read(buffer);
+                if (length > 0) {
+                    // Пересылаем TCP трафик на Go сервер
+                    try (Socket sock = new Socket()) {
+                        sock.connect(new InetSocketAddress(GO_HOST, GO_PORT));
+                        sock.getOutputStream().write(buffer, 0, length);
+
+                        // Читаем ответ и возвращаем в TUN
+                        int n;
+                        byte[] resp = new byte[32767];
+                        while ((n = sock.getInputStream().read(resp)) > 0) {
+                            out.write(resp, 0, n);
+                        }
+                    } catch (IOException e) {
+                        Log.e(TAG, "Go connect error: " + e);
+                    }
+                }
+            }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "VPN error: " + e);
+        } finally {
+            try {
+                if (vpnInterface != null) vpnInterface.close();
+            } catch (IOException ignored) {}
+            running = false;
+            Log.i(TAG, "VPN stopped");
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        running = false;
+        super.onDestroy();
+        Log.i(TAG, "Service destroyed");
     }
 }
