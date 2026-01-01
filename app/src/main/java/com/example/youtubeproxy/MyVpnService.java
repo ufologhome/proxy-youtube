@@ -8,18 +8,17 @@ import android.util.Log;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
 public class MyVpnService extends VpnService {
 
     private static final String TAG = "MyVpnService";
-    private ParcelFileDescriptor vpnInterface = null;
-    private Thread vpnThread = null;
+    private ParcelFileDescriptor vpnInterface;
+    private Thread vpnThread;
     private volatile boolean running = false;
 
-    private String GO_HOST = "192.168.0.150"; // ваш ПК с Go
+    private String GO_HOST = "192.168.0.150"; // ПК с Go сервером
     private int GO_PORT = 8881;
 
     @Override
@@ -27,7 +26,7 @@ public class MyVpnService extends VpnService {
         if (vpnThread != null && running) return START_STICKY;
 
         running = true;
-        vpnThread = new Thread(this::runVpn, "MyVpnThread");
+        vpnThread = new Thread(this::runVpn, "VPNThread");
         vpnThread.start();
         return START_STICKY;
     }
@@ -36,9 +35,9 @@ public class MyVpnService extends VpnService {
         try {
             Builder builder = new Builder();
             builder.setSession("YTProxyVPN")
-                    .addAddress("10.0.0.2", 32)
-                    .addRoute("0.0.0.0", 0)
-                    .setMtu(1500);
+                   .addAddress("10.0.0.2", 32)
+                   .addRoute("0.0.0.0", 0)
+                   .setMtu(1500);
 
             vpnInterface = builder.establish();
             if (vpnInterface == null) return;
@@ -53,29 +52,27 @@ public class MyVpnService extends VpnService {
             while (running) {
                 int length = in.read(buffer);
                 if (length > 0) {
-                    // Пересылаем TCP трафик на Go сервер
                     try (Socket sock = new Socket()) {
                         sock.connect(new InetSocketAddress(GO_HOST, GO_PORT));
                         sock.getOutputStream().write(buffer, 0, length);
 
-                        // Читаем ответ и возвращаем в TUN
                         int n;
                         byte[] resp = new byte[32767];
                         while ((n = sock.getInputStream().read(resp)) > 0) {
                             out.write(resp, 0, n);
                         }
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         Log.e(TAG, "Go connect error: " + e);
                     }
                 }
             }
 
         } catch (Exception e) {
-            Log.e(TAG, "VPN error: " + e);
+            Log.e(TAG, "VPN error", e);
         } finally {
             try {
                 if (vpnInterface != null) vpnInterface.close();
-            } catch (IOException ignored) {}
+            } catch (Exception ignored) {}
             running = false;
             Log.i(TAG, "VPN stopped");
         }
