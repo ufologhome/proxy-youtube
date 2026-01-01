@@ -3,13 +3,17 @@
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
-        android:label="YT VPN"
+        android:label="YT Proxy VPN"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
         <service
             android:name=".MyVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE"
             android:exported="true"/>
+
+        <activity
+            android:name=".PlayerActivity"
+            android:exported="false"/>
 
         <activity
             android:name=".MainActivity"
