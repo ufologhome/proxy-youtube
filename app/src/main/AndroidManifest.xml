@@ -1,34 +1,24 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
-        android:label="YT Proxy Player"
+        android:label="YT VPN"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
-        <!-- VPN SERVICE -->
         <service
             android:name=".MyVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE"
-            android:exported="true" />
+            android:exported="true"/>
 
-        <!-- PLAYER -->
-        <activity
-            android:name=".PlayerActivity"
-            android:exported="false" />
-
-        <!-- MAIN -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
-
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-
         </activity>
 
     </application>
-
 </manifest>
