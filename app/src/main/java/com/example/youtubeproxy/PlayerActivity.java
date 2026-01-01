@@ -3,37 +3,34 @@ package com.example.youtubeproxy;
 import android.net.Uri;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.ui.PlayerView;
 
 public class PlayerActivity extends AppCompatActivity {
 
-    private ExoPlayer player;
+    private ExoPlayer p;
 
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-        setContentView(R.layout.activity_player);
+        PlayerView v = new PlayerView(this);
+        setContentView(v);
 
-        String videoId = getIntent().getStringExtra("video_id");
+        p = new ExoPlayer.Builder(this).build();
+        v.setPlayer(p);
 
-        String url = "https://www.youtube.com/watch?v=" + videoId;
-
-        player = new ExoPlayer.Builder(this).build();
-
-        PlayerView view = findViewById(R.id.playerView);
-        view.setPlayer(player);
-
-        player.setMediaItem(MediaItem.fromUri(Uri.parse(url)));
-        player.prepare();
-        player.play();
+        // ЭТО СПЕЦИАЛЬНО — ЛЮБОЙ HTTPS
+        p.setMediaItem(MediaItem.fromUri(
+            Uri.parse("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        ));
+        p.prepare();
+        p.play();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        player.release();
+        p.release();
     }
 }
